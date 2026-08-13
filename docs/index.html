@@ -70,6 +70,13 @@ figcaption{color:var(--dim);font-size:13.5px;margin-top:8px;font-family:var(--mo
 .pending{border-left-color:var(--warn)}
 footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px solid var(--line)}
 @media(max-width:640px){h1{font-size:32px}nav .item{display:none}}
+#viewer{width:100%;height:480px;background:var(--bg2);border:1px solid var(--line);
+  border-radius:12px;overflow:hidden;cursor:grab}
+#viewer:active{cursor:grabbing}
+.vbtns{display:flex;gap:10px;margin:0 0 12px}
+.vbtn{font-family:var(--mono);font-size:13px;padding:7px 14px;border-radius:999px;
+  border:1px solid var(--line);background:var(--panel);color:var(--dim);cursor:pointer}
+.vbtn.on{color:var(--acc);border-color:var(--acc)}
 </style>
 </head>
 <body>
@@ -77,6 +84,7 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
 <nav><div class="wrap">
   <span class="logo">PERHEX</span>
   <a class="item" href="#why">Why</a>
+  <a class="item" href="#view">View</a>
   <a class="item" href="#method">Method</a>
   <a class="item" href="#usage">Usage</a>
   <a class="item" href="#gbterm">GB term</a>
@@ -119,8 +127,27 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   and distance-to-boundary fields (see the <a href="#study">GB-distance study</a>).</p>
 </div></section>
 
+<section id="view"><div class="wrap">
+  <h2><span class="n">02</span>Look at it</h2>
+  <div class="vbtns">
+    <button class="vbtn on" data-mode="full">full mesh (49,920 hexes)</button>
+    <button class="vbtn" data-mode="grain">one grain, extracted</button>
+  </div>
+  <div id="viewer"></div>
+  <p class="dim" style="margin-top:8px">drag to orbit &middot; scroll to zoom &middot;
+  every colored patch boundary you see is an exact tessellation plane</p>
+  <h3>10 % tension, running</h3>
+  <video autoplay muted loop playsinline
+    style="width:100%;border-radius:12px;border:1px solid var(--line)">
+    <source src="assets/r1_tension.mp4" type="video/mp4">
+  </video>
+  <p class="dim" style="margin-top:6px;font-family:var(--mono);font-size:13.5px">
+  R1: aluminium, K&#8345;/d&#8346; GB storage active, explicit state update,
+  328 increments to 10 % &mdash; surface colored by &sigma;&#8321;&#8321;</p>
+</div></section>
+
 <section id="method"><div class="wrap">
-  <h2><span class="n">02</span>Method</h2>
+  <h2><span class="n">03</span>Method</h2>
   <h3>One hexahedron per cell vertex</h3>
   <p>Every vertex of a generic Laguerre cell touches exactly three edges and three
   faces. Each cell therefore splits into one hex per vertex, with corners</p>
@@ -156,7 +183,7 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
 </div></section>
 
 <section id="usage"><div class="wrap">
-  <h2><span class="n">03</span>Usage</h2>
+  <h2><span class="n">04</span>Usage</h2>
 <pre><code><span class="c"># 1. periodic tessellations (Neper &gt;= 4), screened for minimum feature size</span>
 <span class="k">bash</span> pick_tess.sh                 <span class="c"># candidates cand_*.tess</span>
 <span class="k">python</span> eval_tess.py               <span class="c"># rank by min edge; best -&gt; rve.tess</span>
@@ -179,7 +206,7 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
 </div></section>
 
 <section id="gbterm"><div class="wrap">
-  <h2><span class="n">04</span>GB storage term for OXFORD-UMAT</h2>
+  <h2><span class="n">05</span>GB storage term for OXFORD-UMAT</h2>
   <p><code>oxford-patch/</code> adds the Haouala-type grain-boundary dislocation
   storage term to the Kocks&ndash;Mecking model of
   <a href="https://github.com/TarletonGroup/CrystalPlasticity">OXFORD-UMAT</a>
@@ -212,7 +239,7 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
 </div></section>
 
 <section id="study"><div class="wrap">
-  <h2><span class="n">05</span>GB-distance study</h2>
+  <h2><span class="n">06</span>GB-distance study</h2>
   <p>The staircase geometry corrupts d&#8346; as a <em>model input</em>, before any
   mechanics happens &mdash; measured at the same points and directions, exact
   Laguerre planes vs rays marched through the voxel field:</p>
@@ -249,5 +276,79 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   repo contributes, with code.</p>
 </div></footer>
 
+<script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  var el = document.getElementById('viewer');
+  var W = el.clientWidth, H = el.clientHeight;
+  var renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  el.appendChild(renderer.domElement);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(38, W/H, 0.01, 100);
+  camera.position.set(1.9, 1.5, 2.2);
+  var controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0.5, 0.5, 0.5);
+  controls.enableDamping = true;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 1.1;
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  var d1 = new THREE.DirectionalLight(0xffffff, 0.9); d1.position.set(2,3,1.5);
+  var d2 = new THREE.DirectionalLight(0x7aa2f7, 0.35); d2.position.set(-2,-1,-1);
+  scene.add(d1); scene.add(d2);
+
+  var groups = {full: new THREE.Group(), grain: new THREE.Group()};
+  scene.add(groups.full); scene.add(groups.grain);
+  groups.grain.visible = false;
+
+  function grainColor(g){
+    var h = (g * 0.618034) % 1.0;
+    return new THREE.Color().setHSL(h, 0.45, 0.55);
+  }
+  fetch('assets/mesh.json').then(function(r){return r.json();}).then(function(data){
+    ['full','grain'].forEach(function(mode){
+      var per = data[mode];
+      Object.keys(per).forEach(function(g){
+        var pos = new Float32Array(per[g]);
+        var geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.computeVertexNormals();
+        var mat = new THREE.MeshPhongMaterial({
+          color: grainColor(+g), flatShading: true, shininess: 18,
+          side: THREE.DoubleSide});
+        per[g] = null;
+        groups[mode].add(new THREE.Mesh(geo, mat));
+      });
+    });
+    // center the extracted grain at the cube center for display
+    var box = new THREE.Box3().setFromObject(groups.grain);
+    var c = box.getCenter(new THREE.Vector3());
+    groups.grain.position.sub(c).add(new THREE.Vector3(0.5, 0.5, 0.5));
+  });
+
+  document.querySelectorAll('.vbtn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.vbtn').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');
+      var m = b.getAttribute('data-mode');
+      groups.full.visible = (m === 'full');
+      groups.grain.visible = (m === 'grain');
+    });
+  });
+
+  window.addEventListener('resize', function(){
+    W = el.clientWidth; H = el.clientHeight;
+    camera.aspect = W/H; camera.updateProjectionMatrix();
+    renderer.setSize(W, H);
+  });
+  (function loop(){
+    requestAnimationFrame(loop);
+    controls.update();
+    renderer.render(scene, camera);
+  })();
+})();
+</script>
 </body>
 </html>
