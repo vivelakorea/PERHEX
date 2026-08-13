@@ -122,6 +122,17 @@ R3 midpoint+staircase frozen / R4 voxel+staircase frozen.
 - Rendering cross-sections: cut element edges against the plane exactly;
   face-based approximations show spurious gaps.
 
+## References
+
+- Haouala, Segurado, LLorca, Acta Mater. 148 (2018) 72 - the K_s/d_b GB
+  storage term and the frozen-d_b practice revisited here
+- Rubio, Haouala, LLorca, J. Mater. Res. 34 (2019) 2263 - the aluminium
+  Kocks-Mecking parameters used in R1-R4
+- Haouala, Alizadeh, Bieler, Segurado, LLorca, Int. J. Plasticity 126
+  (2020) 102600
+- Quey, Dawson, Barbe, CMAME 200 (2011) 1729 - Neper
+- OXFORD-UMAT: github.com/TarletonGroup/CrystalPlasticity (Demir et al.)
+
 ## Requirements
 
 Neper >= 4.10 (with gmsh 4.8.x on PATH), Python 3 + numpy, Abaqus for the
