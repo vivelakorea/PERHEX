@@ -1,0 +1,17 @@
+diff --git a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/userinputs.f b/oxford_mp/userinputs.f
+index 7c257c2..4b37d5b 100644
+--- a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/userinputs.f
++++ b/oxford_mp/userinputs.f
+@@ -20,6 +20,12 @@
+ !     By default set to be ON
+       integer, parameter, public :: stateupdate = 0
+ !
++!     Convect the GB-distance table with the local deformation
++!     gradient: d_b(t) = d_b0*|F.s0| per slip system, so the distance
++!     tracks the deforming boundary (first-order). 0: frozen t=0 table
++!     (literature practice, cf. Haouala 2018 Sec. 4).
++      integer, parameter, public :: dbconvect = 0
++!
+ !
+ !     Predictor schemes
+ !     0: Weighted average of fully-plastic and fully-elastic guess

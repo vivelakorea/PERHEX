@@ -1,0 +1,37 @@
+diff --git a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/hardening.f b/oxford_mp/hardening.f
+index 3727333..c4a2e60 100644
+--- a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/hardening.f
++++ b/oxford_mp/hardening.f
+@@ -21,7 +21,7 @@
+      + loop,rhofor,rhotot, 
+      + rhosub,tausolute,
+      + dtauc,drhotot,drhofor,
+-     + drhosub, dssd, dloop)
++     + drhosub, dssd, dloop, dbedge)
+       use globalvariables, only : KB
+       use userinputs, only: maxnparam, maxnloop
+       implicit none
+@@ -44,6 +44,8 @@
+ !
+ !     Burger's vector
+       real(8), intent(in) :: burgerv(nslip)
++!     slip-direction distance to grain boundary (um)
++      real(8), intent(in) :: dbedge(nslip)
+ !
+ !
+ !     cumulative crystallographic slip at the current tiemstep
+@@ -307,7 +309,13 @@
+               end if
+ !
+ !
+-              dssd(is) = (k1/b*dsqrt(rhofor(is))-k2*ssd(is))*
++!             GB storage term (Haouala et al., IJP 2020): storage rate
++!             is max of the forest mean-free-path term and K_s/d_b,
++!             with d_b the slip-direction distance to the boundary.
++!             hardeningparam(7) = K_s; zero (default) recovers the
++!             original Kocks-Mecking update since db defaults huge.
++              dssd(is) = (max(k1*dsqrt(rhofor(is)),
++     + hardeningparam(7)/dbedge(is))/b - k2*ssd(is))*
+      + absgammadot(is)*dt
+ !
+ !

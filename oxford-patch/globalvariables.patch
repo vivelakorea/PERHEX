@@ -1,0 +1,17 @@
+diff --git a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/globalvariables.f b/oxford_mp/globalvariables.f
+index 4052b6b..d381164 100644
+--- a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/globalvariables.f
++++ b/oxford_mp/globalvariables.f
+@@ -12,6 +12,12 @@
+ !     -------------------------------------------------------------------------------       
+ !     Global variable for Euler angles
+       real(8), allocatable, public :: Euler(:,:)
++!
++!     Per-element, per-slip-system distance to the nearest grain
++!     boundary along the slip direction (um), read from db_table.dat.
++!     Used by the GB storage term in Kocks-Mecking hardening (model-3)
++!     when hardeningparam(7) = K_s > 0. Default 1.d+20 disables it.
++      real(8), allocatable, public :: db_all(:,:)
+       
+ !     Global variable storing grain id
+ !     Different grains can be present in the mesh

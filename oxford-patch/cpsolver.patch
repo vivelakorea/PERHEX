@@ -1,0 +1,120 @@
+diff --git a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/cpsolver.f b/oxford_mp/cpsolver.f
+index 80d71f3..4e52a95 100644
+--- a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/cpsolver.f
++++ b/oxford_mp/cpsolver.f
+@@ -33,7 +33,7 @@
+      + statev_substructure_t, statev_substructure, statev_sigma_t2,
+      + statev_totgammasum_t, statev_totgammasum, 
+      + statev_tausolute_t, statev_tausolute, forestproj_all,
+-     + numslip_all, numscrew_all, phaseid_all,
++     + numslip_all, numscrew_all, phaseid_all, db_all,
+      + dirc_0_all, norc_0_all, caratio_all, cubicslip_all,
+      + Cc_all, gf_all, G12_all, alphamat_all, burgerv_all,
+      + sintmat1_all, sintmat2_all, hintmat1_all, hintmat2_all,
+@@ -46,7 +46,10 @@
+ !
+       use userinputs, only: constanttemperature, temperature,
+      + predictor, maxnslip, maxnparam, maxxcr, cutback,
+-     + phi, maxnloop, stateupdate, readresidualstrainfile, tres
++     + phi, maxnloop, stateupdate, readresidualstrainfile, tres,
++     + dbconvect
++!
++      use dbtrace, only: rt_loaded, rt_dirs, rt_db
+ !
+ !
+       use usermaterials, only: materialparam
+@@ -196,6 +199,8 @@
+ !     slip resistance
+       real(8) :: tauc_t(numslip_all(matid))
+       real(8) :: tauc(numslip_all(matid))
++!     slip-direction distance to grain boundary (um)
++      real(8) :: dbedge(numslip_all(matid))
+ !     effective overall slip resistance
+ !     (tauc0 + GND + SSD + solute + substructure + forest + etc.)
+       real(8) :: tauceff_t(numslip_all(matid))
+@@ -312,6 +317,9 @@
+       real(8) :: norc_0(numslip_all(matid),3)
+ !     slip direction and slip plane normal at the sample reference
+       real(8) :: dirs_t(numslip_all(matid),3)
++!     initial slip directions in sample frame (for d_b convection)
++      real(8) :: dirs_0(numslip_all(matid),3)
++      real(8) :: nors_0(numslip_all(matid),3)
+       real(8) :: nors_t(numslip_all(matid),3)
+ !
+ !     Forest projection operators for GND and SSD
+@@ -554,6 +562,13 @@
+       call rotateslipsystems(phaid,nslip,caratio,
+      + gmatinv_t,dirc_0,norc_0,dirs_t,nors_t)
+ !
++!     store current slip directions for the GB-distance ray-tracer
++      if (rt_loaded) then
++          do is = 1, nslip
++              rt_dirs(:,is,noel) = dirs_t(is,:)
++          end do
++      end if
++!
+ !
+ !     Calculate Schmid tensors and Schmid dyadic
+       Schmid=0.; SchmidxSchmid=0.
+@@ -932,7 +947,24 @@
+           end do
+ !
+ !
+-
++!         slip-direction GB distance for this element (t=0 table);
++!         optionally convected with the local total deformation
++!         gradient, d_b(t) = d_b0*|F.s0|, so it tracks the deforming
++!         boundary to first order (chord assumed inside one element's
++!         F — best exactly where d_b is small and the term matters)
++          dbedge = db_all(noel,1:nslip)
++          if (dbconvect==1) then
++              call rotateslipsystems(phaid,nslip,caratio,
++     + gmatinv_0,dirc_0,norc_0,dirs_0,nors_0)
++              do is=1,nslip
++                  dbedge(is) = dbedge(is)*
++     + norm2(matmul(dfgrd1,dirs_0(is,:)))
++              end do
++          elseif (dbconvect==2 .and. rt_loaded) then
++!             distances ray-traced on the deformed facets at the end
++!             of the previous increment (dbtrace_update)
++              dbedge = rt_db(1:nslip,noel)
++          end if
+ !
+           call CP_Dunne(matid, phaid,
+      + nslip, nscrew, mattemp, Cs, gf, G12,
+@@ -958,7 +990,7 @@
+      + tauceff, tauc, tausolute,
+      + ssdtot, ssd, loop, X,
+      + forest, substructure,
+-     + sigma, jacobi, cpconv)
++     + sigma, jacobi, cpconv, dbedge)
+ !
+ !
+ !
+@@ -1083,7 +1115,7 @@
+      + tauceff, tauc, tausolute,
+      + ssdtot, ssd, loop, X,
+      + forest, substructure,
+-     + sigma, jacobi, cpconv)
++     + sigma, jacobi, cpconv, dbedge)
+ !
+       use globalvariables, only : I3, I6, smallnum
+ !
+@@ -1130,6 +1162,8 @@
+       real(8), intent(in) :: G12
+ !     Burgers vectors
+       real(8), intent(in) :: burgerv(nslip)
++!     slip-direction distance to grain boundary (um)
++      real(8), intent(in) :: dbedge(nslip)
+ !     flag for cubic slip systems
+       integer, intent(in) :: cubicslip
+ !     c/a ratio for hcp crystals
+@@ -1643,7 +1677,7 @@
+      + tauc_t,ssd_t,loop_t,
+      + rhofor_t,rhotot_t,substructure_t,
+      + tausolute,dtauc,dssdtot,dforest,
+-     + dsubstructure,dssd,dloop)
++     + dsubstructure,dssd,dloop,dbedge)
+ !
+ !
+ !

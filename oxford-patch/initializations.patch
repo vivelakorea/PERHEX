@@ -1,0 +1,51 @@
+diff --git a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/initializations.f b/oxford_mp/initializations.f
+index 12e6b1b..cb1a25d 100644
+--- a/O:/prj_rve/oxford_umat_clone/OXFORD-UMAT/initializations.f
++++ b/oxford_mp/initializations.f
+@@ -1048,7 +1048,7 @@
+ !     Arrays allocated
+       subroutine allocate_arrays
+       use globalvariables, only : numel, numpt, numdim, 
+-     + Euler, materialid, featureid, phaseid, 
++     + Euler, db_all, materialid, featureid, phaseid,
+      + phaseid_all, numslip_all, numscrew_all,
+      + dirc_0_all, norc_0_all, trac_0_all, linc_0_all,
+      + forestproj_all, slip2screw_all, screw_all,
+@@ -1082,14 +1082,37 @@
+ !
+       use userinputs, only : maxnslip, maxnparam,
+      + maxnmaterial, maxnloop, maxneigh
++      use dbtrace, only : dbtrace_init
+       implicit none
+       integer i, j, k
++      character(len=256) :: dbdir
++      integer :: lendbdir
++      logical :: dbexist
+ !
+ !
+ !     Can be different for each element
+       allocate(Euler(numel,3))
+       Euler=0.
+ !
++!     Slip-direction distance to grain boundary (um), optional table.
++!     Huge default keeps the GB storage term inactive where no data.
++      allocate(db_all(numel,maxnslip))
++      db_all=1.d+20
++      call getoutdir(dbdir, lendbdir)
++      inquire(file=dbdir(:lendbdir)//'/db_table.dat', exist=dbexist)
++      if (dbexist) then
++          open(397, file=dbdir(:lendbdir)//'/db_table.dat',
++     + action='read', status='old')
++          do i=1,numel
++              read(397,*) (db_all(i,j), j=1,12)
++          end do
++          close(397)
++          write(*,*) 'db_table.dat read: ', numel, ' elements'
++      end if
++!
++!     optional facet tables for per-increment GB-distance ray-tracing
++      call dbtrace_init(numel)
++!
+ !     For multiple grains
+       allocate(featureid(numel,numpt))
+       featureid=0
