@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PERHEX</title>
+<meta name="description" content="Periodic all-hexahedral polycrystal RVEs with exactly planar grain boundaries">
+<style>
+:root{
+  --bg:#0b0e14; --bg2:#11151f; --panel:#151a26; --line:#232a3a;
+  --fg:#dbe2ef; --dim:#8b94a7; --acc:#5eead4; --acc2:#7aa2f7; --warn:#f7768e;
+  --mono:'SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,'Segoe UI',Roboto,sans-serif}
+body::before{content:'';position:fixed;inset:0;z-index:-1;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:48px 48px;opacity:.18}
+a{color:var(--acc2);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:960px;margin:0 auto;padding:0 24px}
+nav{position:sticky;top:0;background:rgba(11,14,20,.85);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);z-index:10}
+nav .wrap{display:flex;gap:22px;align-items:center;height:52px}
+nav .logo{font-family:var(--mono);font-weight:700;color:var(--acc);letter-spacing:.08em}
+nav a.item{color:var(--dim);font-size:14px}
+nav a.item:hover{color:var(--fg);text-decoration:none}
+nav .gh{margin-left:auto}
+header{padding:84px 0 60px;text-align:left}
+h1{font-size:44px;line-height:1.15;letter-spacing:-.02em}
+h1 .x{color:var(--acc)}
+.tag{font-family:var(--mono);color:var(--dim);margin:18px 0 0;font-size:17px}
+.hero-badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.badge{font-family:var(--mono);font-size:13px;padding:5px 12px;border:1px solid var(--line);
+  border-radius:999px;color:var(--acc);background:var(--panel)}
+section{padding:44px 0;border-top:1px solid var(--line)}
+h2{font-size:26px;margin-bottom:18px;letter-spacing:-.01em}
+h2 .n{color:var(--acc);font-family:var(--mono);font-size:18px;margin-right:10px}
+h3{font-size:18px;margin:26px 0 10px;color:var(--acc2)}
+p{margin:12px 0;color:var(--fg)}
+p.dim,li.dim{color:var(--dim)}
+ul,ol{margin:12px 0 12px 22px}
+li{margin:6px 0}
+code{font-family:var(--mono);font-size:.92em;background:var(--panel);
+  border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--acc)}
+pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:14px 0;font-size:14px;line-height:1.55}
+pre code{background:none;border:none;padding:0;color:var(--fg)}
+pre .c{color:var(--dim)} pre .k{color:var(--acc2)} pre .s{color:var(--acc)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:9px 12px;text-align:left}
+th{background:var(--panel);color:var(--dim);font-weight:600;font-size:13px;
+  text-transform:uppercase;letter-spacing:.05em}
+td .good{color:var(--acc)} td .bad{color:var(--warn)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:20px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+.card .big{font-family:var(--mono);font-size:30px;color:var(--warn);font-weight:700}
+.card .big.g{color:var(--acc)}
+.card .lbl{color:var(--dim);font-size:13.5px;margin-top:6px;line-height:1.45}
+figure{margin:22px 0}
+figure img{width:100%;border-radius:12px;border:1px solid var(--line)}
+figcaption{color:var(--dim);font-size:13.5px;margin-top:8px;font-family:var(--mono)}
+.eq{font-family:var(--mono);background:var(--bg2);border:1px solid var(--line);
+  border-radius:10px;padding:14px 18px;margin:14px 0;color:var(--acc);
+  overflow-x:auto;white-space:nowrap;font-size:14.5px}
+.note{border-left:3px solid var(--acc2);background:var(--panel);border-radius:0 10px 10px 0;
+  padding:12px 16px;margin:14px 0;font-size:14.5px;color:var(--dim)}
+.pending{border-left-color:var(--warn)}
+footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px solid var(--line)}
+@media(max-width:640px){h1{font-size:32px}nav .item{display:none}}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <span class="logo">PERHEX</span>
+  <a class="item" href="#why">Why</a>
+  <a class="item" href="#method">Method</a>
+  <a class="item" href="#usage">Usage</a>
+  <a class="item" href="#gbterm">GB term</a>
+  <a class="item" href="#study">Study</a>
+  <a class="gh" href="https://github.com/vivelakorea/PERHEX">GitHub &rarr;</a>
+</div></nav>
+
+<header class="wrap">
+  <h1><span class="x">PER</span>iodic all-<span class="x">HEX</span>ahedral<br>polycrystal RVEs with exactly<br>planar grain boundaries</h1>
+  <p class="tag">tessellation-exact geometry &middot; machine-precision periodicity &middot; C3D8R &middot; graded to the boundary</p>
+  <div class="hero-badges">
+    <span class="badge">all-hex</span>
+    <span class="badge">GB planes exact</span>
+    <span class="badge">PBC node-matched &lt;1e-12</span>
+    <span class="badge">boundary-graded n&sup3;</span>
+    <span class="badge">open code + OXFORD-UMAT patch</span>
+  </div>
+</header>
+
+<section id="why"><div class="wrap">
+  <h2><span class="n">01</span>Why</h2>
+  <p>Crystal-plasticity RVEs are usually voxel meshes: periodic boundary conditions
+  are trivial, but every grain boundary becomes a staircase. Conforming meshes fix
+  the geometry but are tetrahedral, and node-matched periodicity is usually
+  sacrificed. PERHEX gives all four properties at once &mdash; measured on the same
+  20-grain microstructure (voxel N=40 vs PERHEX):</p>
+  <div class="cards">
+    <div class="card"><div class="big">45.2&deg;</div>
+      <div class="lbl">mean voxel GB facet normal error vs the true Laguerre plane
+      (p90: 70&deg;). PERHEX: <b>0&deg;</b> by construction.</div></div>
+    <div class="card"><div class="big">1.497&times;</div>
+      <div class="lbl">voxel GB surface area inflation &mdash; every surface-integrated
+      GB quantity inherits it. PERHEX: exact.</div></div>
+    <div class="card"><div class="big g">4.4&deg; / 15.9&deg;</div>
+      <div class="lbl">median / p90 GB-plane rotation during 10 % tension &mdash;
+      trackable only on a conforming mesh (voxel normals are wrong at t=0).</div></div>
+  </div>
+  <p class="dim">Any model input measured on the mesh geometry inherits these errors
+  &mdash; GB tractions for decohesion, slip-transfer criteria evaluated on facets,
+  and distance-to-boundary fields (see the <a href="#study">GB-distance study</a>).</p>
+</div></section>
+
+<section id="method"><div class="wrap">
+  <h2><span class="n">02</span>Method</h2>
+  <h3>One hexahedron per cell vertex</h3>
+  <p>Every vertex of a generic Laguerre cell touches exactly three edges and three
+  faces. Each cell therefore splits into one hex per vertex, with corners</p>
+  <div class="eq">(v, m(e&#8321;), c(f&#8321;&#8322;), m(e&#8322;), m(e&#8323;), c(f&#8321;&#8323;), C, c(f&#8322;&#8323;))</div>
+  <p>&mdash; the vertex, three edge midpoints, three face centroids, and the cell
+  centroid. A grain-boundary face is covered by quads whose four corners all lie in
+  the face plane: <b>planarity is exact by construction</b>, not an approximation.</p>
+  <h3>Periodicity by re-tessellation</h3>
+  <p>The periodic seed set plus its 27 images is re-tessellated on the unit cube, so
+  opposite boundary traces are exact translates of each other; a cut-position
+  optimizer keeps the cube planes away from tessellation vertices. Opposite-face
+  node sets then match to &lt;10&#8315;&sup1;&sup2; and standard 3-dummy
+  <code>*EQUATION</code> PBCs apply directly.</p>
+  <h3>Grading that survives periodicity</h3>
+  <p>Each coarse hex is refined n&sup3; with one global geometric schedule
+  t&#7522; = (r&#8305;&minus;1)/(r&#8319;&minus;1). All three local zero-planes of a
+  corner hex lie on cell faces, so the same schedule refines toward every grain
+  boundary &mdash; and because it is shared by all hexes, conformity and periodicity
+  are preserved bitwise.</p>
+  <figure>
+    <img src="assets/mp_slice_final.png" alt="cross-section of the graded all-hex mesh">
+    <figcaption>exact plane cut through the 20-grain example &mdash; 49,920 C3D8R,
+    n=4, r=1.5, first GB layer 12.3 % of the local span</figcaption>
+  </figure>
+  <h3>Verification</h3>
+  <ul>
+    <li>element volumes tile the domain to 10&#8315;&#8313;</li>
+    <li>all 2&times;2&times;2 Gauss Jacobians positive in every element</li>
+    <li>100 % of opposite-face/edge/corner nodes matched, in-plane offsets &lt;10&#8315;&sup1;&sup2;</li>
+    <li>10 % uniaxial-tension CPFEM: periodic displacement jumps constant across
+    every face pair to ~10&#8315;&#8313; relative</li>
+  </ul>
+</div></section>
+
+<section id="usage"><div class="wrap">
+  <h2><span class="n">03</span>Usage</h2>
+<pre><code><span class="c"># 1. periodic tessellations (Neper &gt;= 4), screened for minimum feature size</span>
+<span class="k">bash</span> pick_tess.sh                 <span class="c"># candidates cand_*.tess</span>
+<span class="k">python</span> eval_tess.py               <span class="c"># rank by min edge; best -&gt; rve.tess</span>
+
+<span class="c"># 2. cube cut + midpoint hexes + graded refinement (n=4, ratio=1.5)</span>
+<span class="k">python</span> -c <span class="s">"from build_cube_rve import make_cut_tess; make_cut_tess()"</span>
+<span class="k">python</span> gen_midpoint_hex.py 4 1.5
+
+<span class="c"># 3. self-contained Abaqus deck (mesh + PBC + per-grain material)</span>
+<span class="k">python</span> gen_mp_deck_oxford.py      <span class="c"># -&gt; oxford_mp/rve_oxford.inp</span>
+
+<span class="c"># 4. run with OXFORD-UMAT</span>
+<span class="k">abaqus</span> job=rve_oxford user=OXFORD-UMAT.f cpus=8 double=both</code></pre>
+  <p class="dim">Requirements: Neper &ge; 4.10 with gmsh 4.8.x, Python 3 + numpy,
+  Abaqus. The deck is fully self-contained (mesh, PBC equations, per-grain
+  orientations and properties in one <code>.inp</code>).</p>
+  <div class="note">Tessellations must not contain features smaller than the target
+  mesh size &mdash; the seed screening replaces Neper regularization, which is
+  unavailable for periodic tessellations.</div>
+</div></section>
+
+<section id="gbterm"><div class="wrap">
+  <h2><span class="n">04</span>GB storage term for OXFORD-UMAT</h2>
+  <p><code>oxford-patch/</code> adds the Haouala-type grain-boundary dislocation
+  storage term to the Kocks&ndash;Mecking model of
+  <a href="https://github.com/TarletonGroup/CrystalPlasticity">OXFORD-UMAT</a>
+  (6 small patches + one new file; <code>K_s = 0</code> is bit-identical to
+  upstream):</p>
+  <div class="eq">&rho;&#775;&#775;&#8345;&#8345;&#8340; = ( max( k&#8321;&radic;&rho;&#8342;,&nbsp; K&#8345;/d&#8346; ) / b &minus; k&#8322;&rho;&#8345;&#8345;&#8340; ) |&gamma;&#775;|</div>
+  <p>where d&#8346; is the slip-direction distance to the nearest grain boundary,
+  per element and slip system. Three d&#8346; modes:</p>
+  <table>
+    <tr><th>mode</th><th>d&#8346;</th><th>mechanism</th></tr>
+    <tr><td><code>dbconvect=0</code></td><td>frozen t=0 table</td>
+      <td>literature practice (Haouala 2018: &ldquo;computed and stored at the
+      beginning&hellip; assumed not to change&rdquo;)</td></tr>
+    <tr><td><code>dbconvect=1</code></td><td>chord convection</td>
+      <td>d&#8346;(t) = d&#8346;&#8320;&middot;|F&middot;s&#8320;|, purely local</td></tr>
+    <tr><td><code>dbconvect=2</code></td><td><b>live ray-trace</b></td>
+      <td>GB facet quads tracked by their actual nodes (<code>*Node File</code>
+      &rarr; <code>.fil</code> &rarr; <code>URDFIL</code> each increment);
+      M&ouml;ller&ndash;Trumbore against precomputed candidate lists; the t=0 trace
+      reproduces the exact Laguerre distances to machine precision</td></tr>
+  </table>
+  <p class="dim">The d&#8346; tables come from exact closed-form ray tracing in the
+  periodic Laguerre diagram (<code>gen_db_table.py</code>), with staircase-geometry
+  variants for corruption studies. Details in
+  <a href="https://github.com/vivelakorea/PERHEX/tree/main/oxford-patch">oxford-patch/README</a>.</p>
+  <div class="note">Live mode needs <code>mp_mode=threads</code> and rate-limits the
+  per-increment d&#8346; change (&plusmn;5 %): the raw facet-tracked distance steps
+  discontinuously when the hit facet changes, and feeding that step straight into
+  the explicit hardening update collapses the time increment (measured).</div>
+</div></section>
+
+<section id="study"><div class="wrap">
+  <h2><span class="n">05</span>GB-distance study</h2>
+  <p>The staircase geometry corrupts d&#8346; as a <em>model input</em>, before any
+  mechanics happens &mdash; measured at the same points and directions, exact
+  Laguerre planes vs rays marched through the voxel field:</p>
+  <table>
+    <tr><th>evaluation points</th><th>median |rel. error|</th><th>p90</th></tr>
+    <tr><td>64,000 voxel centers</td><td>8.9 %</td><td>63.7 %</td></tr>
+    <tr><td>49,920 PERHEX centroids (GB-graded)</td><td><span class="bad">30.1 %</span></td><td><span class="bad">138 %</span></td></tr>
+  </table>
+  <p class="dim">The corruption is largest exactly where the term matters most:
+  near the boundaries, where the graded mesh concentrates its elements.</p>
+  <h3>Run matrix</h3>
+  <table>
+    <tr><th>run</th><th>mesh</th><th>d&#8346; source</th><th>in time</th><th>isolates</th></tr>
+    <tr><td>R1</td><td>PERHEX</td><td>exact</td><td>frozen</td><td>reference (literature practice)</td></tr>
+    <tr><td>R2</td><td>PERHEX</td><td>exact</td><td><b>live ray-trace</b></td><td>frozen-table error</td></tr>
+    <tr><td>R3</td><td>PERHEX</td><td>staircase</td><td>frozen</td><td>input corruption alone</td></tr>
+    <tr><td>R4</td><td>voxel</td><td>staircase</td><td>frozen</td><td>whole voxel pipeline</td></tr>
+  </table>
+  <p>R1: 10 % tension, 328 increments with the explicit state update, flow stress
+  86.8 MPa, PBC deviation 5&times;10&#8315;&#8313;. Aluminium Kocks&ndash;Mecking
+  parameters (Rubio 2019 / Haouala 2020), K&#8345; = 5, 25 &mu;m cube,
+  &lt;d&gt; = 9.2 &mu;m.</p>
+  <div class="note pending">R2&ndash;R4 are running; curves and deltas will land
+  here when they finish.</div>
+</div></section>
+
+<footer><div class="wrap">
+  <p>PERHEX &mdash; MIT license. OXFORD-UMAT is by the
+  <a href="https://github.com/TarletonGroup/CrystalPlasticity">Tarleton group</a>;
+  the patches contain minimal context fragments under their authors' terms.</p>
+  <p style="margin-top:8px">Built on: Neper (Quey) &middot; gmsh &middot; the midpoint
+  subdivision goes back to Li (1995) / Eppstein (1999) / Bajaj (2005) &mdash; the
+  combination (conforming + all-hex + node-matched periodic + graded) is what this
+  repo contributes, with code.</p>
+</div></footer>
+
+</body>
+</html>
