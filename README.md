@@ -1,5 +1,7 @@
 # PERHEX — periodic all-hex polycrystal RVEs with exactly planar grain boundaries
 
+**Docs: <https://vivelakorea.github.io/PERHEX/>**
+
 Generates representative volume elements (RVEs) for CPFEM that satisfy, **simultaneously and exactly**:
 
 1. all-hexahedral (`C3D8R`) mesh — no tet subdivision, no forced 4x element count
