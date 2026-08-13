@@ -278,12 +278,44 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
     <tr><td>R3</td><td>PERHEX</td><td>staircase</td><td>frozen</td><td>input corruption alone</td></tr>
     <tr><td>R4</td><td>voxel</td><td>staircase</td><td>frozen</td><td>whole voxel pipeline</td></tr>
   </table>
-  <p>R1: 10 % tension, 328 increments with the explicit state update, flow stress
-  86.8 MPa, PBC deviation 5&times;10&#8315;&#8313;. Aluminium Kocks&ndash;Mecking
-  parameters (Rubio 2019 / Haouala 2020), K&#8345; = 5, 25 &mu;m cube,
-  &lt;d&gt; = 9.2 &mu;m.</p>
-  <div class="note pending">R2&ndash;R4 are running; curves and deltas will land
-  here when they finish.</div>
+  <h3>Results (10 % tension, aluminium KM, K&#8345;=5, &lt;d&gt;=9.2 &mu;m)</h3>
+  <p>All four runs completed with the explicit state update; every PBC jump
+  constant to ~10&#8315;&#8313;. Flow stress is the <b>volume-weighted</b>
+  &lang;&sigma;&#8321;&#8321;&rang; &mdash; on a boundary-graded mesh the naive
+  element average over-weights the hardened GB layers (by 30 % here; an easy
+  trap).</p>
+  <figure>
+    <img src="assets/sscurve_compare.png" alt="stress-strain comparison R1-R4">
+  </figure>
+  <table>
+    <tr><th>run</th><th>&sigma; @ 10 %</th><th>&Delta; vs R1</th></tr>
+    <tr><td>R1 midpoint, exact d&#8346;, frozen</td><td>66.5 MPa</td><td>&mdash;</td></tr>
+    <tr><td>R2 midpoint, exact d&#8346;, <b>live ray-trace</b></td><td>66.5 MPa</td><td>&minus;0.1 %</td></tr>
+    <tr><td>R3 midpoint, staircase d&#8346;, frozen</td><td>67.6 MPa</td><td>+1.7 %</td></tr>
+    <tr><td>R4 voxel, staircase d&#8346;, frozen</td><td>62.1 MPa</td><td>&minus;6.7 %</td></tr>
+  </table>
+  <p>What the decomposition says, honestly:</p>
+  <ul>
+    <li><b>The frozen-d&#8346; assumption is safe for the macroscopic curve</b>
+    (R2 vs R1: &minus;0.1 %) &mdash; even though the live distances drift hard
+    locally: by 10 % strain, 17 % of (element &times; slip system) rays changed
+    by more than 10 %, with extremes at 0.17&times; and 24&times; the initial
+    value. Macro-safe, locally large &mdash; anything evaluated per-boundary
+    (slip transfer, decohesion) sees the drift the average hides.</li>
+    <li><b>The d&#8346; input corruption self-averages</b> (R3 vs R1: +1.7 %):
+    a median-30 % scatter in a distance that enters through
+    max(k&#8321;&radic;&rho;, K&#8345;/d&#8346;) largely cancels in the mean
+    response.</li>
+    <li><b>The mesh itself is the biggest term</b> (R4 vs R1: &minus;6.7 %):
+    with identical physics and near-identical inputs, the staircase
+    discretization alone softens the predicted response by several times more
+    than either d&#8346; effect.</li>
+  </ul>
+  <figure>
+    <img src="assets/db_drift.png" alt="d_b drift distribution and evolution">
+    <figcaption>left: distribution of d&#8346;(10 %)/d&#8346;(0) per ray
+    (log count) &mdash; right: mean and min ratio vs geometry update</figcaption>
+  </figure>
 </div></section>
 
 <section id="refs"><div class="wrap">

@@ -111,10 +111,22 @@ to upstream) and supports three d_b modes:
   trace reproduces the exact Laguerre distances to machine precision.
   Requires `mp_mode=threads`.
 
-Runs: R1 midpoint+exact frozen / R2 midpoint+ray-traced live /
-R3 midpoint+staircase frozen / R4 voxel+staircase frozen.
-(Results section: pending completion of R2–R4; R1 = 10 % tension,
-328 increments, explicit state update, flow stress 86.8 MPa.)
+Results (10 % tension, Al Kocks-Mecking, volume-weighted flow stress —
+on a boundary-graded mesh the naive element average over-weights the
+hardened GB layers by ~30 %, an easy trap):
+
+| run | sigma @10% | delta vs R1 |
+|-----|-----------|-------------|
+| R1 midpoint, exact d_b, frozen | 66.5 MPa | — |
+| R2 midpoint, exact d_b, live ray-trace | 66.5 MPa | -0.1 % |
+| R3 midpoint, staircase d_b, frozen | 67.6 MPa | +1.7 % |
+| R4 voxel, staircase d_b, frozen | 62.1 MPa | -6.7 % |
+
+Honest reading: the frozen-d_b assumption is macro-safe (R2) even though
+17 % of rays drift >10 % locally (extremes 0.17x / 24x) — per-boundary
+quantities see what the average hides; the d_b input corruption
+self-averages (R3); and the mesh discretization itself is the largest
+term (R4).
 
 ## Notes
 
