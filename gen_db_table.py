@@ -17,7 +17,8 @@
 import numpy as np
 from build_cube_rve import tess_read_seeds, read_orientations
 
-LPHYS = 25.0        # physical cube edge in um -> mean grain size ~9.2 um
+import os
+LPHYS = float(os.environ.get("PERHEX_LPHYS", "25.0"))   # cube edge, um
 NSYS = 12
 EPS = 1e-12
 

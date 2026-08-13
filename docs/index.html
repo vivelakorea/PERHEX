@@ -200,6 +200,21 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   <p class="dim">Requirements: Neper &ge; 4.10 with gmsh 4.8.x, Python 3 + numpy,
   Abaqus. The deck is fully self-contained (mesh, PBC equations, per-grain
   orientations and properties in one <code>.inp</code>).</p>
+  <h3>Microstructure control</h3>
+  <p>Everything about the microstructure is set at the Neper call and flows
+  through unchanged:</p>
+  <table>
+    <tr><th>property</th><th>where</th></tr>
+    <tr><td>grain count</td><td><code>neper -T -n &lt;N&gt;</code></td></tr>
+    <tr><td>size / shape distribution</td><td><code>-morpho</code> &mdash; the default
+      <code>gg</code> is lognormal diameq; any Neper morphology spec works</td></tr>
+    <tr><td>texture / ODF</td><td><code>-ori</code> (random, fiber, ODF sampling, or a
+      per-grain file); orientations are read back from the tessellation's
+      <code>*ori</code> section</td></tr>
+    <tr><td>physical size</td><td>unit cube &times; your units; d&#8346; tables scale via
+      <code>PERHEX_LPHYS</code> (default 25 &mu;m)</td></tr>
+    <tr><td>resolution / grading</td><td><code>gen_midpoint_hex.py &lt;n&gt; &lt;ratio&gt;</code></td></tr>
+  </table>
   <div class="note">Tessellations must not contain features smaller than the target
   mesh size &mdash; the seed screening replaces Neper regularization, which is
   unavailable for periodic tessellations.</div>

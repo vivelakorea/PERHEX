@@ -56,6 +56,25 @@ abaqus job=rve_oxford input=rve_oxford.inp user=OXFORD-UMAT.f cpus=8 double=both
 
 ![example slice](example/mp_slice_final.png)
 
+## Microstructure control
+
+Everything about the microstructure is set at the Neper call in
+`pick_tess.sh` and flows through the pipeline unchanged:
+
+- **grain count**: `neper -T -n <N> ...`
+- **grain size / shape distribution**: the `-morpho` argument. The default
+  `gg` is a lognormal equivalent-diameter distribution
+  (`diameq:lognormal(1,0.35)`); any Neper morphology spec works, e.g.
+  `-morpho "diameq:lognormal(1,0.6),1-sphericity:lognormal(0.145,0.03)"`.
+- **texture / ODF**: the `-ori` argument (`random`, `fiber(...)`, ODF
+  sampling, or an explicit per-grain orientation file). Orientations are
+  read back from the `*ori` section of the tessellation, so whatever
+  Neper writes is what the Abaqus deck gets.
+- **physical size**: the mesh is a unit cube; the physical edge length
+  enters only through the d_b tables (`PERHEX_LPHYS` environment
+  variable, default 25 um) and your material units.
+- **mesh resolution / grading**: `gen_midpoint_hex.py <n> <ratio>`.
+
 ## Why planar (and node-matched) boundaries matter — measured
 
 Same 20-grain microstructure, voxel N=40 vs this mesh:
