@@ -2,6 +2,8 @@
 
 **Docs: <https://vivelakorea.github.io/PERHEX/>**
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21920755.svg)](https://doi.org/10.5281/zenodo.21920755)
+
 Generates representative volume elements (RVEs) for CPFEM that satisfy, **simultaneously and exactly**:
 
 1. all-hexahedral (`C3D8R`) mesh — no tet subdivision, no forced 4x element count
@@ -137,3 +139,16 @@ R3 midpoint+staircase frozen / R4 voxel+staircase frozen.
 
 Neper >= 4.10 (with gmsh 4.8.x on PATH), Python 3 + numpy, Abaqus for the
 CPFEM step.
+
+## Citing
+
+```bibtex
+@software{sim_perhex_2026,
+  author  = {Sim, Gyu-Jang},
+  title   = {PERHEX: periodic all-hexahedral polycrystal RVEs with
+             exactly planar grain boundaries},
+  year    = {2026},
+  doi     = {10.5281/zenodo.21920755},
+  url     = {https://github.com/vivelakorea/PERHEX}
+}
+```
