@@ -350,6 +350,19 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   a grain that percolates through the periodic box (genus &gt; 0 boundary) cannot
   be filled by a single-apex midpoint fan &mdash; it needs a multi-apex
   decomposition (standard handle-cutting, implementation deferred).</p>
+  <h3>Simulations</h3>
+  <p>Left: the MOOSE grain-growth run the meshes come from (25 &rarr; 7 grains,
+  periodic, grain ids persistent). Right: 2 % tension CPFEM on the curved mesh
+  &mdash; the grain-boundary network deforming (displacements &times;10),
+  colored by &sigma;&#8321;&#8321;.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+    <video autoplay muted loop playsinline
+      style="width:100%;border-radius:12px;border:1px solid var(--line)">
+      <source src="assets/grain_growth.mp4" type="video/mp4"></video>
+    <video autoplay muted loop playsinline
+      style="width:100%;border-radius:12px;border:1px solid var(--line)">
+      <source src="assets/cpfem_curved.mp4" type="video/mp4"></video>
+  </div>
   <figure>
     <img src="assets/t4_percolating.png" alt="percolating matrix grain, genus-3 boundary"
       style="max-width:420px;margin:0 auto;display:block">
