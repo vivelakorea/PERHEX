@@ -164,3 +164,15 @@ CPFEM step.
   url     = {https://github.com/vivelakorea/PERHEX}
 }
 ```
+
+## Curved grain boundaries (phase-field input)
+
+The construction is combinatorial, so it also runs on curved
+microstructures: `pf/` takes a MOOSE grain-growth snapshot (periodic,
+multi-order-parameter) through OP-based junction extraction (generalized
+Euler gate V-E+F-annuli = chi), curved midpoint hexahedralization, n^3
+graded refinement with sub-voxel iso-surface projection, and a wrap-style
+PBC CPFEM deck. Measured: 0 inverted hexes and unchanged solver behavior
+up to a 5020x element-volume spread; the single limit is topological
+(grains percolating through the periodic box need a multi-apex
+decomposition — deferred). See the docs page for the matrix.

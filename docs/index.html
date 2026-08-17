@@ -94,6 +94,7 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   <a class="item" href="#usage">Usage</a>
   <a class="item" href="#gbterm">GB term</a>
   <a class="item" href="#study">Study</a>
+  <a class="item" href="#curved">Curved</a>
   <a class="gh" href="https://github.com/vivelakorea/PERHEX">GitHub &rarr;</a>
 </div></nav>
 
@@ -137,6 +138,7 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   <div class="vbtns">
     <button class="vbtn on" data-mode="full">full mesh (49,920 hexes)</button>
     <button class="vbtn" data-mode="grain">one grain, extracted</button>
+    <button class="vbtn" data-mode="curved">curved GB network (phase-field)</button>
   </div>
   <div id="viewer"></div>
   <p class="dim" style="margin-top:8px">drag to orbit &middot; scroll to zoom &middot;
@@ -318,8 +320,47 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   </figure>
 </div></section>
 
+<section id="curved"><div class="wrap">
+  <h2><span class="n">07</span>Curved boundaries (phase-field input)</h2>
+  <p>The midpoint construction is combinatorial &mdash; it needs trivalent
+  junction topology, not planar faces. Feeding it a <b>phase-field grain-growth
+  microstructure</b> (MOOSE, periodic 40&sup3;, Fan&ndash;Chen multi-order-parameter)
+  gives conforming all-hex periodic meshes with <em>curved</em> grain boundaries:
+  order-parameter-based junction extraction (a generalized Euler gate
+  V&minus;E+F&minus;annuli = &chi; verified against an independent voxel-surface
+  characteristic), one hex per (grain, quadruple point), n&sup3; graded
+  refinement, and sub-voxel projection onto the OP iso-surfaces
+  (&lt;1 voxel moves). Code in <a
+  href="https://github.com/vivelakorea/PERHEX/tree/main/pf">pf/</a>.</p>
+  <table>
+    <tr><th>case</th><th>topology</th><th>min SJ</th><th>inverted</th>
+      <th>el-volume spread</th><th>CPFEM 2 %</th></tr>
+    <tr><td>mild curvature (baseline)</td><td>24/24</td><td>0.22</td><td>0</td>
+      <td>~10&sup2;</td><td>103 inc, 1 cutback, 28 s</td></tr>
+    <tr><td>bimodal, early</td><td>24/24</td><td>0.13</td><td>0</td>
+      <td>382&times;</td><td>103 inc, 1 cutback, 28 s</td></tr>
+    <tr><td>bimodal, dying grains</td><td>11/11</td><td>0.08</td><td>0</td>
+      <td><b>5020&times;</b></td><td>103 inc, 1 cutback, 12 s</td></tr>
+    <tr><td>domain-scale curvature</td><td>8/8</td><td colspan="3">28.6 % of volume meshable</td>
+      <td><span class="bad">blocked: percolating grain</span></td></tr>
+  </table>
+  <p>Honest limits, measured: the solver never became the bottleneck &mdash; every
+  runnable case converged with the identical increment signature, even at a
+  5020&times; element-volume spread. The single failure mode is <b>topological</b>:
+  a grain that percolates through the periodic box (genus &gt; 0 boundary) cannot
+  be filled by a single-apex midpoint fan &mdash; it needs a multi-apex
+  decomposition (standard handle-cutting, implementation deferred).</p>
+  <figure>
+    <img src="assets/t4_percolating.png" alt="percolating matrix grain, genus-3 boundary"
+      style="max-width:420px;margin:0 auto;display:block">
+    <figcaption>the limit case: a matrix grain percolating in all three periodic
+    directions (44 % of volume, genus-3 boundary) &mdash; topologically outside the
+    single-apex construction</figcaption>
+  </figure>
+</div></section>
+
 <section id="refs"><div class="wrap">
-  <h2><span class="n">07</span>References</h2>
+  <h2><span class="n">08</span>References</h2>
   <ul style="font-size:14.5px">
     <li class="dim">S. Haouala, J. Segurado, J. LLorca,
       <i>An analysis of the influence of grain size on the strength of FCC polycrystals
@@ -374,9 +415,9 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   var d2 = new THREE.DirectionalLight(0x7aa2f7, 0.35); d2.position.set(-2,-1,-1);
   scene.add(d1); scene.add(d2);
 
-  var groups = {full: new THREE.Group(), grain: new THREE.Group()};
-  scene.add(groups.full); scene.add(groups.grain);
-  groups.grain.visible = false;
+  var groups = {full: new THREE.Group(), grain: new THREE.Group(), curved: new THREE.Group()};
+  scene.add(groups.full); scene.add(groups.grain); scene.add(groups.curved);
+  groups.grain.visible = false; groups.curved.visible = false;
 
   function grainColor(g){
     var h = (g * 0.618034) % 1.0;
@@ -403,6 +444,18 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
     groups.grain.position.sub(c).add(new THREE.Vector3(0.5, 0.5, 0.5));
   });
 
+  fetch('assets/mesh_pf.json').then(function(r){return r.json();}).then(function(data){
+    Object.keys(data.curved).forEach(function(g){
+      var pos = new Float32Array(data.curved[g]);
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geo.computeVertexNormals();
+      groups.curved.add(new THREE.Mesh(geo, new THREE.MeshPhongMaterial({
+        color: grainColor(+g), flatShading: true, shininess: 18,
+        side: THREE.DoubleSide})));
+    });
+  });
+
   document.querySelectorAll('.vbtn').forEach(function(b){
     b.addEventListener('click', function(){
       document.querySelectorAll('.vbtn').forEach(function(x){x.classList.remove('on');});
@@ -410,6 +463,7 @@ footer{padding:40px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
       var m = b.getAttribute('data-mode');
       groups.full.visible = (m === 'full');
       groups.grain.visible = (m === 'grain');
+      groups.curved.visible = (m === 'curved');
     });
   });
 

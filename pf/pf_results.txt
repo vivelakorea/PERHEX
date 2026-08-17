@@ -1,0 +1,327 @@
+Junction-graph extraction + midpoint hex mesh v0 -- results summary
+====================================================================
+Scripts: pf_topology.py (extraction + Euler gate), pf_hexmesh.py (v0 mesh).
+Outputs: pf_snap_f*_complex.npz (verified complex), pf_snap_f*_mesh.npz
+(coords [unit cube, wrapped], conn [0-based hex8], grain, minsj, mindet).
+Runtime: topology ~3 s, hexmesh <1 s per frame (all vectorized, 80^3 grid).
+
+Method (and why gid-seeded, not OP-threshold-seeded)
+----------------------------------------------------
+The partition is rebuilt from the SMOOTH order parameters: voxel grain =
+argmax of cell-averaged OPs on a 2x supersampled (80^3) grid (trilinear
+nodal interpolation), with GrainTracker's raw per-element gid used ONLY to
+disambiguate OP reuse (majority vote per periodic dominant-OP component).
+Raw gid alone is unusable (~4000 speckle islands per frame inside diffuse
+interfaces); OP top-k thresholding alone was the old pf_junctions_op.py
+approach (5/24 Euler) whose threshold provably merges clusters along short
+triple lines or drops weak quad points. argmax needs NO threshold, and the
+supersampling resolves most sub-voxel features. All topology below is exact
+combinatorics of that clean periodic partition; instance multiplicity comes
+from periodic connected components, never from grain-set identity.
+
+Entities (all periodic):
+- face instance: component of interface voxel-faces of one pair, joined
+  across 2-grain edges; 3-grain "pinch" edges (cyclic pattern a,b,a,c = two
+  grains touching only diagonally) are resolved non-manifold ridges: they
+  are NOT triple lines, and the two same-pair face wedges are joined
+  through them (resolved-manifold interpretation).
+- tri instance: component of TRUE triple edges (3-grain, 3 transitions
+  around the edge cycle), joined across 3-grain corners; ends at junction
+  corners.
+- vertex: connected junction blob of >=4-grain corners (joined through
+  U>=4 edges / pinch edges / nested-set staircase adjacency; a true triple
+  edge between non-nested corner sets is a legitimate length-1 bridge and
+  keeps vertices split).
+
+Degeneracy repairs (all detected and applied automatically, iteratively):
+1. chord removal: <=2-edge arcs starting AND ending in one blob are chords
+   of the contracted vertex -> deleted.
+2. vertex split: a >2-edge arc with both ends at two DIFFERENT corners of
+   one blob means the blob wrongly merged two vertices -> forbid those
+   direct joins, rebuild.
+3. bundle merge: >=2 parallel <=2-edge arcs between the same two blobs
+   cannot be generic -> the blobs are one (degenerate) junction -> merged.
+4. rim-less micro-face absorption: a face instance with no bordering arcs
+   whose pair is contained in the single junction blob surrounding it is
+   sub-voxel junction detail -> absorbed into the blob.
+Vertices with >4 grains are flagged degenerate (honest: real >4 junctions
+or mid-topological-transition states, e.g. f3 has one 5-grain vertex
+{2,6,11,13,20} where 5 OPs are all 0.18-0.36 -- a T1-type event in flight).
+
+EULER GATE (V - E + F = 2 per grain, instance counts; V includes one
+fictitious vertex per closed-loop arc -- none occurred):
+  frame  t        grains  Euler pass  consistency checks
+  f0     0        25      25/25 PASS  arcs w/ 3 faces 324/324, generic
+                                      vertices 4 arcs+6 faces 157/157,
+                                      non-disk faces 0, free ends 0
+  f3     ~7.9e3   24      24/24 PASS  291/291, 144/144, 0, 0
+  f5     ~1.4e4   20      20/20 PASS  237/237, 117/117, 0, 0
+  f7     17122    15      15/15 PASS  163/163, 80/80, non-disk 1*, 0
+  (*f7: one legal loop-through-vertex arc kept; Euler still passes.)
+Degenerate (>4-grain) vertices: f0: 3, f3: 1, f5: 1, f7: 1.
+Caveat: on late frames the cleaned partition drops grains that never win
+the OP argmax anywhere (f5: raw gid lists 22, partition has 20; f7: 20 ->
+15). These are dying sub-voxel grains mid-annihilation; they are genuinely
+below the geometric resolution of this snapshot representation.
+
+OP cross-check: top-2 OPs at one sampled interface node match the gid pair
+for ~55-70% of face instances (f0 100/193, f3 96/170, f5 80/139). The
+misses are nodes within the ~2-cell interface width of a junction where a
+third OP intrudes -- expected for a single-node sample; the partition
+itself is BY CONSTRUCTION the OP argmax, so this is only a sanity check of
+the g2op disambiguation.
+
+MIDPOINT HEX MESH v0 (coarse, n=1; one hex per (grain, generic vertex),
+corners (q, m1, c12, m2, m3, c13, C_grain, c23) per gen_midpoint_hex.py;
+geometry: vertex = blob corner centroid, edge midpoint = arc-length middle
+of the instance polyline, face center = patch centroid, grain center =
+periodic circular mean; OP sub-voxel projection deliberately deferred).
+Periodicity: each construction point has one canonical wrapped position
+shared via its entity key -> mesh conforms on the torus by construction;
+per-hex geometry evaluated in the grain's unwrapped frame (max corner span
+27-37 vox < 40 = half box, valid on every frame).
+
+  frame  hexes  nodes  skipped(deg/amb)  unmatched  volume  inverted
+         quads (holes)
+  f0     628    695    3 vertices / 0    60         0.9159  24 (3.8%)
+  f3     576    629    1 / 0             18         0.9890   0
+  f5     460    508    1 / 2             30         0.9808   4 (0.9%)
+  f7     320    351    1 / 0             12         0.9905   2 (0.6%)
+Conformity: 0 overshared quads on all frames; unmatched quads are exactly
+the holes left by skipped degenerate vertices.
+
+Quality (min scaled Jacobian over 2x2x2 Gauss points):
+  frame   min      median   [<0, 0-.05, .05-.1, .1-.2, .2-.3, .3-.4, .4-.5, >.5]
+  f0     -1.000    0.619    [24, 1, 2, 15, 22, 56, 85, 423]
+  f3      0.268    0.754    [ 0, 0, 0,  0,  5, 23, 30, 518]
+  f5     -0.998    0.745    [ 4, 0, 0,  3,  8, 20, 16, 409]
+  f7     -0.964    0.710    [ 2, 0, 0,  3,  8, 21, 26, 260]
+
+Where the curved construction fails (the v0 finding, later resolved):
+ALL inverted hexes sat at quad points with r_qp/r_grain = 1.0-1.8, at
+corners BEYOND the grain's equivalent-sphere radius, with minSJ ~ -0.9.
+
+v1 RESOLUTION: those hexes were not folded at all -- they were LEFT-HANDED
+cells misclassified by the v0 handedness test. v0 decided flips from the
+q-corner tetra det(m1-q, m2-q, m3-q), which at thin far corners is a
+near-degenerate sliver whose sign (~+1) disagrees with the cell volume
+(~-100s): corner diagnosis showed corner 0 det ~ 0..+2 and ALL seven other
+corners strongly negative. Deciding handedness by CELL VOLUME (sum of
+Gauss dets) fixes every case:
+
+v1 quality (volume-based flip; apex relocation and the bounded node
+untangler are implemented as fallbacks but NEVER trigger):
+  frame  hexes  flipped  inverted  minSJ    median  volume
+  f0     628    314      0         0.041    0.625   0.9664
+  f3     576    288      0         0.268    0.754   0.9890
+  f5     460    230      0         0.141    0.746   0.9845
+  f7     320    160      0         0.158    0.710   0.9952
+Exactly half the cells flip (the arbitrary sorted (e1,e2) order is
+left-handed 50% of the time); the per-grain apex relocation the plan
+prescribed was tested first and could NOT fix any grain (Nelder-Mead over
+the shared apex maxed out at min det ~ -100s) -- correct, because the
+folded corners' Jacobians do not involve the apex; that dead end is what
+prompted the corner-by-corner diagnosis. No topology-adaptation cases
+remain: 0 inverted on ALL frames including the sharp Voronoi IC.
+
+n^3 GRADED REFINEMENT (+ OP projection), gen_midpoint_hex global schedule
+(geometric ratio 1.5 toward the quad-point corner; the three local
+coordinate planes through q are exactly the GB quads). Conformity by
+construction (one global schedule; nodes keyed on rounded wrapped
+coords): 0 overshared quads at every n. GB-face-interior nodes then
+projected onto op_a = op_b of their face's pair (3 Newton steps on the
+trilinearly-interpolated nodal OPs, displacement capped at 0.35 x local
+grid spacing):
+  mesh      hexes   minSJ    median  inverted  proj disp (vox)
+  f3 n=2    4608    0.220    0.850   0         --
+  f3 n=2 P  4608    0.220    0.846   0         mean 0.16, max 0.71
+  f3 n=3    15552   0.206    0.876   0         --
+  f3 n=3 P  15552   0.132    0.877   0         mean 0.20, max 1.07
+  f0 n=2    5024    0.032    0.727   0         --
+  f0 n=2 P  5024    0.032    0.725   0         mean 0.16, max 0.71
+Projection moves nodes < ~1 voxel (the trilinear geometry is already
+close to the OP iso-surface because the v0 skeleton samples lie on it);
+it buys sub-voxel GB fidelity at negligible quality cost (median SJ
+changes < 0.01; the n=3 minSJ dip 0.21 -> 0.13 is one clamped node near a
+junction). Meshes saved as pf_snap_*_mesh_n{2,3}[p].npz.
+Remaining refinement caveat: refined hex EDGE nodes between q and m
+follow the trilinear chord of the triple line, not the curved line itself
+(only face-interior nodes are projected; edge nodes would need the
+op_a=op_b=op_c 2-constraint projection -- deferred).
+
+CPFEM SMOKE TEST (part 3)
+-------------------------
+Deck: pf_deck.py -> pf_cpfem/pf_cpfem.inp from pf_snap_f3_mesh_n2p.npz
+(f3, n=2 graded, OP-PROJECTED, 4608 C3D8R, minSJ 0.220). Wrap-style PBC
+per neper2abaqus.py: 902 image nodes (elements crossing the cube), 2706
+*Equations u_img - u_prim = shift . jumps, 3 dummy nodes (dummy-3 =
+normal jumps). Materials: OXFORD-UMAT 300-constant Al (oxford_props
+write_material), random Bunge angles seed 42, 24 grains. UMAT sources
+copied from oxford_mp/ (dbconvect already 0; db_table.dat / gb_rt.bin NOT
+copied -- both reads are inquire-guarded, so the GB storage term is
+inactive = upstream-OXFORD behavior). Load: uniaxial x tension to 2% at
+1e-3/s, Static, nlgeom.
+
+Result: COMPLETED SUCCESSFULLY. 103 increments, exactly 1 cutback (the
+very first increment, 0.1 -> 0.05 s; everything after converged in 1-3
+equilibrium iterations, no further cutbacks). Wall clock 28 s on 8 cpus.
+No element-quality-related solver behavior at all: no warnings tied to
+the minSJ~0.22 graded slivers, no negative-eigenvalue or hourglass
+noise in the .msg at 2% strain.
+
+PBC jump check (pf_post.py, final frame): max residual over all 902
+image-pair equations = 1.9e-9 (machine zero). Macro jumps: X =
+(0.02, 0, 0) exactly as applied; lateral Y2 = -0.0103, Z3 = -0.0091
+(transverse sum ~ -0.0194 vs +0.02 axial: near-incompressible plastic
+contraction, uniaxial-stress state confirmed).
+
+Volume-weighted avg S11 (reference volumes; graded mesh spreads element
+volume ~1e3x so weighting matters): yield ~8 MPa then hardening to
+14.3 MPa at 2% (sscurve_pf.csv). Sanity: consistent with the Rubio/
+Haouala annealed-Al parameter set WITHOUT the GB storage term (tau_c0 =
+gf*mu*b*sqrt(12*rho0) ~ 2.7 MPa -> sigma_y ~ 8 MPa). The parent
+oxford_mp run shows 59.7 MPa at 2% -- expected difference: that run has
+the GB term active (db_table present, ks=5) and a different texture/
+microstructure; ours is the deliberately GB-inactive baseline.
+
+T4: 8-GRAIN DOMAIN-SCALE-CURVATURE RUN (gg_fewgrains_out.e, op_num=8)
+=====================================================================
+(extract_pf.py generalized: python extract_pf.py <frame> <exodus>)
+11 frames, 8 grains -> 4 (f7) -> 1-2 (f9+). Processed f0-f7 topologies;
+mesh/CPFEM targets f5 (t=11428, 8 grains, strongest curvature) and f7
+(t=14788, 4 grains).
+
+Topology gate -- GENERALIZED by this stress test, as designed. T4 exposed
+two false assumptions in the T1-era gate and one real bug:
+1. Faces can be ANNULI (rim = 2 closed loops; chi_face = 2 - n_loops).
+   e.g. f5 face {1,3}: a belt around a grain. The instance extraction was
+   already correct; only the gate arithmetic assumed disks.
+2. Grains can PERCOLATE (wrap the torus). Wrap rank w (rank of the
+   self-adjacency offset lattice, computed per grain) does NOT determine
+   boundary genus: f5 grain 3 (71% matrix, w=3) has chi(dg)=-4 (genus 3),
+   but f7 grain 3 (94%, w=3) is "torus minus a ball cluster" with
+   SPHERE boundary chi=2. So the gate now compares against the
+   INDEPENDENTLY computed voxel-surface Euler characteristic chi_vox(dg)
+   (F - sum_edge g-runs + sum_corner wedge-sheets, non-manifold resolved):
+      V - E + F - n_annuli == chi_vox(dg), no odd-degree face rims.
+   No topology assumptions left in the gate.
+3. Writing chi_vox exposed a numpy trap (bool+bool = OR, undercounting
+   2-run pinch edges); validated against synthetic shapes (voxel, cube,
+   L-tromino, flat ring chi=0, edge-touch pair chi=4, corner-touch pair).
+Result: ALL T4 frames pass 8/8 (f7: 4/4), including percolating grains
+and annular faces. T1 frames re-verified against chi_vox: all pass.
+
+Meshing -- the honest T4 finding:
+- EVERY T4 frame (f0 included) contains >=1 percolating grain (f0/f1:
+  grains 3,7 w=1; f2+: grain 3 w=2..3, growing to 94% volume). A
+  percolating grain has non-ball topology, so the single-apex midpoint
+  construction is TOPOLOGICALLY IMPOSSIBLE for it (a hex fan from one
+  center only closes over a sphere boundary). pf_hexmesh now detects
+  grain_wrap and skips such grains explicitly.
+- f5 partial mesh (7 ball grains, 28.6% of volume): 80 coarse hexes,
+  4 inverted after volume flip -- the first TRUE geometric folds seen
+  (T1's were all handedness artifacts): they sit on the two grains with
+  ANNULAR faces, whose global centroid is a bad geometry sample (an
+  annulus centroid can sit over its hole). Apex move insufficient;
+  bounded untangler (<=2 vox) fixed 1 of 4, leaving 3 inverted
+  (minSJ -0.12). n=2 refinement inherits and projection WORSENS them
+  (proj displacement mean 0.80 / max 4.1 vox on strongly curved faces
+  vs 0.16-0.24 on T1/T3 -- the flat-centroid sample is far from the
+  iso-surface at domain-scale curvature).
+- f7: 6 hexes (94% unmeshed), valid but poor (median SJ 0.17).
+- CPFEM for T4: BLOCKED, precisely: no frame yields a full conforming
+  periodic mesh (percolating matrix at every frame; meshable subset
+  <= 28.6% of volume is not a closed RVE). v2 path: decompose non-ball
+  grains (multi-apex / medial split) and per-sector face samples
+  instead of one global face centroid.
+
+Qualitative difference vs T1-f3 baseline: extraction+gate handle extreme
+curvature fully (annuli, genus, percolation all detected and verified);
+the MESH CONSTRUCTION is what breaks -- first at annular-face geometry
+samples (folds), then structurally at percolation (unmeshable). T1-like
+polycrystals (all ball grains, disk faces) mesh with 0 inverted.
+
+T3: BIMODAL RUN (gg_bimodal_out.e) -- partial, sim still running
+================================================================
+3 frames available at processing time (t=0, 274, 1745; 25 grains -> 24).
+Adversarial feature: tiny-next-to-huge grains (grain volume ratio ~12:1
+at f2) -- note early frames are the hard ones here (tiny grains still
+alive).
+- Topology: f0 25/25 PASS (5 degenerate vertices, 8 micro-faces
+  absorbed, 1 vertex split), f2 24/24 PASS (1 degenerate vertex). All
+  ball-like, no annuli.
+- Mesh f2: v1 580 hexes 0 inverted minSJ 0.160 median 0.721; n=2
+  projected 4640 hexes 0 inverted minSJ 0.127 median 0.829, proj disp
+  mean 0.24 / max 1.2 vox. Hex volume disparity from bimodality:
+  max/min = 382x (p99/p1 = 80x) -- the stress feature, carried into
+  CPFEM below.
+- CPFEM: t3_cpfem/ deck from gg_bimodal_f2_mesh_n2p.npz (4640 C3D8R,
+  1061 image nodes / 3183 PBC equations, same recipe as pf_cpfem).
+  Result: COMPLETED SUCCESSFULLY -- 103 increments, 1 cutback (first
+  increment only, same as the T1 baseline), 28 s wall on 8 cpus. The
+  382x element-volume disparity produced NO additional cutbacks,
+  iterations, or solver warnings: increment/iteration history is
+  essentially identical to T1-f3 pf_cpfem. PBC residual max 1.9e-9 over
+  1061 image pairs; jumps X=(0.02,0,0), lateral -0.0103/-0.0089
+  (uniaxial stress state). Volume-weighted S11 = 14.1 MPa at 2%
+  (vs 14.3 for T1-f3: same material/no-GB baseline, different texture
+  seed -- consistent).
+Later T3 frames (mid/late coarsening of the bimodal structure) pending
+-- rerun the same three commands when the sim finishes.
+
+T3 LATE FRAMES (bimodal run finished: 11 output frames, t=0..27163)
+===================================================================
+Dying-grain frame selection from raw gid minima: f4 (t=7370, 20 grains,
+min grain 10 vox raw) and f9 (t=23562, 11 grains, min 6 vox raw). In the
+OP-argmax partition the dying grains SURVIVE (the smooth OP remnant is
+wider than the gid remnant): f4 smallest grain = 60 vox, f9 = 51 vox,
+both small 5-face polyhedra (F=5 E=9 V=6, chi=2 -- near-lens but not yet
+F=2; a true F=2 lens never appeared in the partition before consumption).
+Grain volume ratios: f4 951x, f9 2067x.
+
+Topology: f4 20/20 PASS, f9 11/11 PASS (all ball-like, no annuli,
+f9 has zero degenerate vertices).
+Mesh:
+  f4 v1: 476 hexes, 0 inverted, minSJ 0.0105 (squeezed but valid)
+  f4 n=2 proj: 3808 hexes, 2 inverted (minSJ -0.020): finer Gauss
+     sampling of one near-degenerate coarse cell exposes a marginal
+     interior fold the coarse 2x2x2 rule missed -- the only inverted
+     cells in the whole T3 set, flagged not fixed
+  f9 v1: 260 hexes, 0 inverted, minSJ 0.101, volume 1.0000, 0 holes
+  f9 n=2 proj: 2080 hexes, 0 inverted, minSJ 0.076, median 0.836,
+     proj disp mean 0.27 / max 1.33 vox; element volume spread 5020x
+CPFEM (t3late_cpfem/, f9 n=2 projected, 2080 C3D8R, 604 image nodes):
+  COMPLETED SUCCESSFULLY -- 103 increments, 1 cutback (first increment,
+  identical pattern to all runs), 12 s wall on 8 cpus. PBC residual max
+  1.9e-9 over 604 pairs; jumps X=(0.02,0,0), lateral Y=-0.0144 /
+  Z=-0.0052 (anisotropic contraction -- 11 grains, texture no longer
+  self-averaging; expected). Volume-weighted S11 = 13.1 MPa at 2%.
+  The 5020x element-volume spread again produced NO solver distress.
+
+FINAL CONSOLIDATED MATRIX
+=========================
+case      topology     meshable  minSJ(n2p) inverted  el-vol     CPFEM (2% tension, OXFORD no-GB)
+          gate         volume               (n2p)     spread
+T1-f3     24/24 PASS   100%      0.220      0/4608    ~1e2       PASS: 103 inc, 1 cutback, 28 s, S11=14.3
+T3-early  24/24 PASS   100%      0.127      0/4640    382x       PASS: 103 inc, 1 cutback, 28 s, S11=14.1
+ (f2)
+T3-late   11/11 PASS   100%      0.076      0/2080    5020x      PASS: 103 inc, 1 cutback, 12 s, S11=13.1
+ (f9)                  (f9; f4: 100%, but 2 marginal inverted at n=2)
+T4        8/8 PASS     28.6%     n/a        3/80 (v1) n/a        BLOCKED: percolating matrix grain at
+ (f5)     (all frames)  (f5)                                     EVERY frame (up to 94% vol) -- non-ball
+                                                                 topology unmeshable by single-apex
+                                                                 construction; annular-face centroids
+                                                                 also give true folds on ball grains
+Conclusions:
+- The topology extraction + generalized Euler gate (V-E+F-annuli ==
+  chi_vox) is unconditionally robust across all four microstructure
+  classes, including percolation, annular faces, and dying grains.
+- The midpoint hex construction is robust for ball-grain polycrystals of
+  any size disparity tested (up to 5020x element volumes, 2067x grain
+  volumes) and fails only where cell topology stops being ball-like
+  (T4): that is a topology-adaptation problem (multi-apex decomposition,
+  per-sector face samples), not a numerical one.
+- Abaqus/Standard + OXFORD-UMAT is indifferent to the graded midpoint
+  meshes' quality range (minSJ 0.08-0.27) and volume spreads: every
+  runnable case converged with the same 103-increment / 1-cutback
+  signature at 12-28 s.
